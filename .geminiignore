@@ -1,0 +1,23 @@
+# Critical: never expand base64 payloads into Gemini context
+*_b64.txt
+*.base64
+
+# General token/noise exclusions
+.git/
+node_modules/
+.venv/
+venv/
+__pycache__/
+.cache/
+dist/
+build/
+*.pyc
+*.log
+*.tmp
+*.bak
+*.zip
+*.7z
+*.rar
+*.tar
+*.tar.gz
+*.tgz
