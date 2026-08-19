@@ -1,0 +1,30 @@
+# Heavy media belongs in Google Drive AI_ASSETS/f14-weapons.
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+*.mp4
+*.mov
+*.mkv
+*.avi
+*.wav
+*.mp3
+*.flac
+*.zip
+*.7z
+*.psd
+*.aep
+*.prproj
+
+# Local/runtime files
+.env
+.env.*
+!.env.example
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
+output/
+tmp/
+cache/
