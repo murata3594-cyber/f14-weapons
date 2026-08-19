@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "storage_policy": "drive_first",
+  "drive_project_folder_id": "14ZLWu5kRUHHC4ijQSRqLlKgAKGB7vWOc",
+  "drive_project_folder_url": "https://drive.google.com/drive/folders/14ZLWu5kRUHHC4ijQSRqLlKgAKGB7vWOc",
+  "folders": {"source_media":"01_SOURCE_MEDIA","generated_media":"02_GENERATED_MEDIA","deliverables":"03_DELIVERABLES"},
+  "github_keeps": ["code","prompts","data","manifests","documentation"],
+  "legacy_tracked_binaries": "migrate_after_drive_copy_verification"
+}
