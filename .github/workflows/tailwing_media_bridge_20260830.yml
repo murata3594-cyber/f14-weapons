@@ -1,4 +1,4 @@
-name: Tailwing verified media bridge seventh pass
+name: Tailwing verified media bridge eighth pass
 on:
   push:
     paths:
@@ -8,24 +8,24 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Fetch Ford crosswind and J36 2024 reference
+      - name: Fetch J36 2024 and NASA X36 official video
         shell: bash
         run: |
           set -u
           mkdir -p out/videos out/images out/meta
           python -m pip install -q yt-dlp
-          yt-dlp --no-playlist -f 'best[ext=mp4]/best' -o 'out/videos/VID_FORD_TRANSIT_SIDE_WIND_STABILISATION_OFFICIAL.mp4' 'https://youtu.be/Aka7PXsjrgc' || true
-          printf '%s\n' 'Ford official Side Wind Stabilisation video: https://youtu.be/Aka7PXsjrgc' > out/videos/VID_FORD_TRANSIT_SIDE_WIND_STABILISATION_OFFICIAL.mp4.source.txt
-          curl -L --fail --retry 3 -A 'Mozilla/5.0' -o 'out/images/REFERENCE_J36_2024_FIRST_FLIGHT_RIGHTS_PENDING.jpeg' 'https://armyrecognition.com/templates/yootheme/cache/52/Exclusive_Secret_Combat_Capabilities_of_Chinas_New_Chengdu_J-36_Stealth_Fighter_Jet_Unveiled_Breaking_News_1920_001-52456543.jpeg' || true
-          printf '%s\n' 'Army Recognition article image; source caption says Chengdu J-36 first flight, Dec 26 2024; picture source China Social Network; reuse rights not cleared.' > out/images/REFERENCE_J36_2024_FIRST_FLIGHT_RIGHTS_PENDING.jpeg.source.txt
-          printf '%s\n' 'file	section	license_source' 'VID_FORD_TRANSIT_SIDE_WIND_STABILISATION_OFFICIAL.mp4	1-07	Ford official media / Side Wind Stabilisation; publication source confirms test track crosswind up to 80 km/h' 'REFERENCE_J36_2024_FIRST_FLIGHT_RIGHTS_PENDING.jpeg	6-04	Army Recognition, Dec 29 2024; caption J-36 first flight near Chengdu Dec 26 2024; China Social Network; RIGHTS PENDING' > out/meta/SOURCES.tsv
-          sha256sum out/videos/*.mp4 out/images/*.jpeg > out/meta/SHA256SUMS.txt 2>/dev/null || true
+          yt-dlp --no-playlist -f 'best[ext=mp4]/best' -o 'out/videos/VID_NASA_UNMANNED_AIRCRAFT_DRYDEN_X36_OFFICIAL.mp4' 'https://www.youtube.com/watch?v=Hbm2FCt9pHc' || true
+          printf '%s\n' 'NASA Armstrong Flight Research Center verified channel: Unmanned Aircraft Systems at NASA Dryden' > out/videos/VID_NASA_UNMANNED_AIRCRAFT_DRYDEN_X36_OFFICIAL.mp4.source.txt
+          curl -L --fail --retry 3 -A 'Mozilla/5.0' -o 'out/images/REFERENCE_J36_2024_01_RIGHTS_PENDING.jpg' 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjffMCXNAJsA8RqFYZgrdDl2lf2uVl_HSz4y1Le59d7gEAlyglYIntW9p4nDl938wdCBwAfNW8IhXJYizv-nxdb00aEdMP4Bj8lqw5gxj9urXMYi-7kLC9lIv-eh9HoQ87L2nI7WEe7jazRqc4Ppg74eFwGgtw_uwV7_RsQOH1J3X8Dk-oG3zjg/w640-h426/81637b14-c43a-11ef-b67e-02001701d894.jpg' || true
+          curl -L --fail --retry 3 -A 'Mozilla/5.0' -o 'out/images/REFERENCE_J36_2024_02_RIGHTS_PENDING.jpg' 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi6F916_ifEne1AYrqFOx8hOBic45SubgZBbvTCs9RjuQDNbfCUv-Kp6ip7tB4BYKHObsFjapcathuzUe6JHzixGVwxvYArvDaBcHf4xaWMan-TVIuQE7oLksMQ58UfxDYNGP4P6VUnfSsXc2f6SV2WMuireKdhyphenhyphenQRPGqDfAWKMyg9fhDwHNHVO/w640-h640/1c4f04ee-c43c-11ef-bced-02001701d894.jpg' || true
+          printf '%s\n' 'China Defense Blog post dated 2024-12-27; real J-36 36011 photos; copyright/reuse rights not cleared.' > out/images/REFERENCE_J36_2024_01_RIGHTS_PENDING.jpg.source.txt
+          printf '%s\n' 'China Defense Blog post dated 2024-12-27; real J-36 36011 photos; copyright/reuse rights not cleared.' > out/images/REFERENCE_J36_2024_02_RIGHTS_PENDING.jpg.source.txt
           find out -maxdepth 2 -type f -printf '%p\t%s bytes\n' | sort
       - name: Upload artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: tailwing-seventh-pass
+          name: tailwing-eighth-pass
           path: out/
           compression-level: 0
           retention-days: 1
