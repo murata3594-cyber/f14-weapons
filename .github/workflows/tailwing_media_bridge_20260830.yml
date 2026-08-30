@@ -1,4 +1,4 @@
-name: Tailwing verified media bridge sixteenth pass
+name: Tailwing verified media bridge seventeenth pass
 on:
   push:
     paths:
@@ -8,23 +8,22 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Install yt-dlp
+      - name: Install media tools
         run: python -m pip install -q -U yt-dlp
-      - name: Acquire NAVAIR official F35B crosswind video
+      - name: Acquire NAVAIR produced F35B crosswind mirror
         shell: bash
         run: |
           set -u
           mkdir -p out/videos out/meta
-          url='https://www.youtube.com/watch?v=hTT35_AoFhM'
-          yt-dlp --no-playlist --extractor-args 'youtube:player_client=android,web_safari' -f 'bestvideo+bestaudio/best' --merge-output-format mp4 -o 'out/videos/VID_F35B_WET_RUNWAY_CROSSWIND_NAVAIR_OFFICIAL.%(ext)s' "$url" || \
-          yt-dlp --no-playlist --extractor-args 'youtube:player_client=web_creator' -f 'best[ext=mp4]/best' -o 'out/videos/VID_F35B_WET_RUNWAY_CROSSWIND_NAVAIR_OFFICIAL.%(ext)s' "$url" || true
-          printf '%s\n' 'NAVAIRSYSCOM official YouTube: F-35B Wet Runway and Crosswind Landing Tests, Aug 22 2014, BF-04/Pax River ITF.' > out/meta/SOURCE.txt
+          url='https://www.military.com/video/aircraft/jet-fighters/f-35b-wet-runway-crosswind-testing/3747903883001'
+          yt-dlp --no-playlist -f 'bestvideo+bestaudio/best' --merge-output-format mp4 -o 'out/videos/VID_F35B_WET_RUNWAY_CROSSWIND_NAVAIR_PD_MIRROR.%(ext)s' "$url" || true
+          printf '%s\n' 'Military.com mirror page identifies video as NAVAIR-produced Pax River ITF footage; F-35B BF-04 wet-runway and extreme-crosswind landing tests, Aug 2014.' > out/meta/SOURCE.txt
           find out -type f -printf '%p\t%s bytes\n'
       - name: Upload artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: tailwing-sixteenth-pass
+          name: tailwing-seventeenth-pass
           path: out/
           compression-level: 0
           retention-days: 1
