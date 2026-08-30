@@ -1,4 +1,4 @@
-name: Tailwing verified media bridge fifteenth pass
+name: Tailwing verified media bridge sixteenth pass
 on:
   push:
     paths:
@@ -6,22 +6,25 @@ on:
 jobs:
   acquire:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
-      - name: Acquire official F35B crosswind images
+      - name: Install yt-dlp
+        run: python -m pip install -q -U yt-dlp
+      - name: Acquire NAVAIR official F35B crosswind video
         shell: bash
         run: |
-          set -euo pipefail
-          mkdir -p out/images out/meta
-          curl -L --fail --retry 3 -A 'Mozilla/5.0' -o 'out/images/F35B_CROSSWIND_WET_RUNWAY_USAF_01.jpg' 'https://media.defense.gov/2014/May/15/2000850186/-1/-1/0/140507-F-TW412-035.JPG'
-          curl -L --fail --retry 3 -A 'Mozilla/5.0' -o 'out/images/F35B_CROSSWIND_WET_RUNWAY_USAF_02.jpg' 'https://media.defense.gov/2014/May/15/2000850185/-1/-1/0/140507-F-TW412-135.JPG'
-          printf '%s\n' 'Air Force Materiel Command official article, May 15 2014; BF-4 F-35B Crosswind and Wet Runway testing at Edwards AFB; official media.defense.gov high-res images.' > out/meta/SOURCE.txt
-          sha256sum out/images/* > out/meta/SHA256SUMS.txt
+          set -u
+          mkdir -p out/videos out/meta
+          url='https://www.youtube.com/watch?v=hTT35_AoFhM'
+          yt-dlp --no-playlist --extractor-args 'youtube:player_client=android,web_safari' -f 'bestvideo+bestaudio/best' --merge-output-format mp4 -o 'out/videos/VID_F35B_WET_RUNWAY_CROSSWIND_NAVAIR_OFFICIAL.%(ext)s' "$url" || \
+          yt-dlp --no-playlist --extractor-args 'youtube:player_client=web_creator' -f 'best[ext=mp4]/best' -o 'out/videos/VID_F35B_WET_RUNWAY_CROSSWIND_NAVAIR_OFFICIAL.%(ext)s' "$url" || true
+          printf '%s\n' 'NAVAIRSYSCOM official YouTube: F-35B Wet Runway and Crosswind Landing Tests, Aug 22 2014, BF-04/Pax River ITF.' > out/meta/SOURCE.txt
           find out -type f -printf '%p\t%s bytes\n'
       - name: Upload artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: tailwing-fifteenth-pass
+          name: tailwing-sixteenth-pass
           path: out/
           compression-level: 0
           retention-days: 1
