@@ -1,4 +1,4 @@
-name: Tailwing verified media bridge twentieth pass
+name: Tailwing verified media bridge twenty-first pass
 on:
   push:
     paths:
@@ -10,28 +10,27 @@ jobs:
     steps:
       - name: Install media tools
         run: python -m pip install -q -U yt-dlp
-      - name: Acquire official crosswind vehicle videos
+      - name: Acquire alternate real crosswind candidates
         shell: bash
         run: |
           set -u
-          mkdir -p out/videos out/meta
-          fetch_youtube() {
-            url="$1"; out="$2"
-            yt-dlp --no-playlist --extractor-args 'youtube:player_client=tv_embedded,web_embedded,android_vr' -f 'best[height<=1080]/best' --merge-output-format mp4 -o "out/videos/${out}.%(ext)s" "$url" || \
-            yt-dlp --no-playlist --extractor-args 'youtube:player_client=web_safari,ios' -f 'best[height<=1080]/best' --merge-output-format mp4 -o "out/videos/${out}.%(ext)s" "$url" || true
-          }
-          fetch_youtube 'https://www.youtube.com/watch?v=Aka7PXsjrgc' 'VID_FORD_TRANSIT_SIDEWIND_OFFICIAL_EDITORIAL_RIGHTS_CHECK'
-          fetch_youtube 'https://www.youtube.com/watch?v=vv5X_BO5kfQ' 'VID_MERCEDES_SPRINTER_CROSSWIND_ASSIST_OFFICIAL_RIGHTS_CHECK'
+          mkdir -p out/videos out/images out/meta
+          yt-dlp --no-playlist -f 'best[height<=1080]/best' -o 'out/videos/VID_MERCEDES_SPRINTER_ASSIST_SYSTEMS_DAILYMOTION_RIGHTS_CHECK.%(ext)s' 'https://www.dailymotion.com/video/x6nsw5b' || true
+          yt-dlp --no-playlist -f 'best[height<=1080]/best' -o 'out/videos/VID_MERCEDES_CROSSWIND_ASSIST_VIMEO_RIGHTS_CHECK.%(ext)s' 'https://vimeo.com/133792996' || true
+          curl -L --retry 3 -A 'Mozilla/5.0' -sS -o 'out/images/MERCEDES_SPRINTER_CROSSWIND_REAL_TEST_MOTORBOX_RIGHTS_CHECK.jpg' 'https://media.motorbox.com/image/mercedes-crosswind-assist/4/0/7/407232/407232-16x9-lg.jpg' || true
+          curl -L --retry 3 -A 'Mozilla/5.0' -sS -o 'out/images/MERCEDES_SPRINTER_CROSSWIND_DEMO_FLEETOWNER_RIGHTS_CHECK.png' 'https://img.fleetowner.com/files/base/ebm/fleetowner/image/2019/04/fleetowner_12636_crossopen.png?auto=format%2Ccompress&fill=blur&fit=fill&h=630&w=1200' || true
           cat > out/meta/SOURCE.txt <<'EOF'
-          Ford of Europe official video ID Aka7PXsjrgc, linked by Ford Media Center article explaining six-fan crosswind testing up to 80 km/h; Ford Media Center multimedia is editorial-use only.
-          Mercedes-Benz Vans Canada official video ID vv5X_BO5kfQ, Crosswind Assist Explained; official channel description says the system detects dangerous wind gusts at highway speeds.
+          Dailymotion x6nsw5b: AutoMotoTV mirror of 2013 Mercedes-Benz Sprinter assist systems press footage, includes Crosswind Assist; editorial rights check.
+          Vimeo 133792996: All Things Media production titled Mercedes-Benz | 2015 Crosswind Assist; rights check required.
+          Motorbox image: real red Sprinter on controlled crosswind test track with windsock; editorial rights check.
+          FleetOwner image: real black Sprinter Crosswind Assist demonstration vehicle; editorial rights check.
           EOF
           find out -type f -printf '%p\t%s bytes\n'
       - name: Upload artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: tailwing-twentieth-pass
+          name: tailwing-twenty-first-pass
           path: out/
           compression-level: 0
           retention-days: 1
