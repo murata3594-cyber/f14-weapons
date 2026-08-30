@@ -1,4 +1,4 @@
-name: Tailwing verified media bridge fourteenth pass
+name: Tailwing verified media bridge fifteenth pass
 on:
   push:
     paths:
@@ -6,46 +6,22 @@ on:
 jobs:
   acquire:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 15
     steps:
-      - name: Install tools
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg && python -m pip install -q -U yt-dlp
-      - name: Acquire official crosswind and landing media
+      - name: Acquire official F35B crosswind images
         shell: bash
         run: |
-          set -u
-          mkdir -p out/videos out/images out/qc out/meta
-
-          yt-dlp --no-playlist -f 'bestvideo+bestaudio/best' --merge-output-format mp4 -o 'out/videos/VID_F35B_WET_RUNWAY_CROSSWIND_NAVAIR_OFFICIAL.%(ext)s' 'https://www.youtube.com/watch?v=hTT35_AoFhM' || true
-          printf '%s\n' 'NAVAIRSYSCOM official YouTube, F-35B wet runway and crosswind landing tests, Aug 22 2014, Pax River ITF.' > out/meta/F35B_CROSSWIND_SOURCE.txt
-
-          yt-dlp --no-playlist -o 'out/videos/VID_F15_TAKEOFF_LANDING_BROLL_PD-USAF.%(ext)s' 'https://www.dvidshub.net/video/700572/f-15-takeoff-and-landing-b-roll' || true
-          yt-dlp --no-playlist -o 'out/videos/VID_F16_LANDING_TUCSON_PD-USAF.%(ext)s' 'https://www.dvidshub.net/video/472910/f-16' || true
-
-          curl -L --fail --retry 3 -A 'Mozilla/5.0' -o 'out/images/FORD_TRANSIT_SIDEWIND_PRESS_IMAGE.jpg' 'https://cache.pressmailing.net/content/2778e386-f643-4434-97e2-ae97b756874a/image' || true
-          printf '%s\n' 'Ford-Werke press image distributed via Presseportal; Transit Side Wind Assistant visual. Ford Media release confirms Side Wind Stabilisation test track/public-road testing.' > out/meta/FORD_IMAGE_SOURCE.txt
-
-          for f in out/videos/*; do
-            [ -f "$f" ] || continue
-            base=$(basename "$f")
-            dur=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$f" 2>/dev/null || echo 0)
-            python - "$f" "$base" "$dur" <<'PY'
-          import sys,subprocess,os
-          f,base,dur=sys.argv[1],sys.argv[2],float(sys.argv[3] or 0)
-          if dur<=0: raise SystemExit
-          times=[dur*x/8 for x in range(1,8)]
-          for i,t in enumerate(times,1):
-              out=f'out/qc/{base}_{i:02d}.jpg'
-              subprocess.run(['ffmpeg','-y','-loglevel','error','-ss',str(t),'-i',f,'-frames:v','1','-vf','scale=960:-2','-q:v','3',out])
-          PY
-          done
-
-          find out -maxdepth 2 -type f -printf '%p\t%s bytes\n' | sort
+          set -euo pipefail
+          mkdir -p out/images out/meta
+          curl -L --fail --retry 3 -A 'Mozilla/5.0' -o 'out/images/F35B_CROSSWIND_WET_RUNWAY_USAF_01.jpg' 'https://media.defense.gov/2014/May/15/2000850186/-1/-1/0/140507-F-TW412-035.JPG'
+          curl -L --fail --retry 3 -A 'Mozilla/5.0' -o 'out/images/F35B_CROSSWIND_WET_RUNWAY_USAF_02.jpg' 'https://media.defense.gov/2014/May/15/2000850185/-1/-1/0/140507-F-TW412-135.JPG'
+          printf '%s\n' 'Air Force Materiel Command official article, May 15 2014; BF-4 F-35B Crosswind and Wet Runway testing at Edwards AFB; official media.defense.gov high-res images.' > out/meta/SOURCE.txt
+          sha256sum out/images/* > out/meta/SHA256SUMS.txt
+          find out -type f -printf '%p\t%s bytes\n'
       - name: Upload artifact
-        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: tailwing-fourteenth-pass
+          name: tailwing-fifteenth-pass
           path: out/
           compression-level: 0
           retention-days: 1
