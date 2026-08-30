@@ -1,0 +1,65 @@
+name: Tailwing verified media bridge
+on:
+  push:
+    paths:
+      - '.github/workflows/tailwing_media_bridge_20260830.yml'
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Fetch open-license media
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out/videos out/images out/meta
+          ua='Mozilla/5.0'
+          wcurl() { curl -L --fail --retry 4 --retry-delay 2 -A "$ua" -o "$2" "$1"; }
+          wcurl 'https://commons.wikimedia.org/wiki/Special:Redirect/file/Bowhunter_shooting_arrow_slow_motion_video_01.webm' 'out/videos/VID_ARROW_slowmotion_CC-BY3.webm'
+          wcurl 'https://commons.wikimedia.org/wiki/Special:Redirect/file/X-29_flight_maneuvers.ogv' 'out/videos/VID_X29_maneuvers_NASA.ogv'
+          wcurl 'https://commons.wikimedia.org/wiki/Special:Redirect/file/Crosswind%26Hard_landing%21_FedEx_Express_N608FE_McDonnell_Douglas_MD-11F.ogv' 'out/videos/VID_CROSSWIND_landing_CC-BY3.ogv'
+          wcurl 'https://commons.wikimedia.org/wiki/Special:Redirect/file/Different-Types-of-Door-Opening-Motions-as-Contributing-Factors-to-Containment-Failures-in-Hospital-pone.0066663.s003.ogv' 'out/videos/VID_DOOR_hinged_CC.ogv'
+          wcurl 'https://commons.wikimedia.org/wiki/Special:Redirect/file/X-47B_Completes_First_Carrier-based_Arrested_Landing_%282%29.ogv' 'out/videos/VID_X47B_carrier_arrested_landing_PD-USN.ogv'
+          wcurl 'https://commons.wikimedia.org/wiki/Special:Redirect/file/AD-Skyraider-rudder.jpg' 'out/images/REAL_RUDDER_AD-Skyraider.jpg'
+          wcurl 'https://commons.wikimedia.org/wiki/Special:Redirect/file/The_AFTI_F-16_flying_at_high_angle_of_attack%2C_shown_in_the_final_configuration_and_paint_finish_%28EC91-630-8%29.jpg' 'out/images/REAL_F16_high_AOA_NASA.jpg'
+          wcurl 'https://commons.wikimedia.org/wiki/Special:Redirect/file/X-36_Taking_off_during_First_Flight_DVIDS741675.jpg' 'out/images/REAL_X36_first_flight_NASA.jpg'
+          wcurl 'https://commons.wikimedia.org/wiki/Special:Redirect/file/X-36_on_Ground_after_Radio_and_Telemetry_Tests_DVIDS684937.jpg' 'out/images/REAL_X36_ground_NASA.jpg'
+          cat > out/meta/SOURCES.tsv <<'EOF'
+          file	section	license_source
+          VID_ARROW_slowmotion_CC-BY3.webm	OP-02,ED-04	Commons CC BY 3.0 / DK WAI
+          VID_X29_maneuvers_NASA.ogv	1-03,7-02	Commons / NASA
+          VID_CROSSWIND_landing_CC-BY3.ogv	6-02	Commons CC BY 3.0
+          VID_DOOR_hinged_CC.ogv	1-12	Commons / PLOS ONE open access
+          VID_X47B_carrier_arrested_landing_PD-USN.ogv	6-03	Commons / U.S. Navy PD
+          REAL_RUDDER_AD-Skyraider.jpg	1-10	Commons
+          REAL_F16_high_AOA_NASA.jpg	2-02,7-02	NASA
+          REAL_X36_first_flight_NASA.jpg	5-08	NASA
+          REAL_X36_ground_NASA.jpg	5-08	NASA
+          EOF
+          sha256sum out/videos/* out/images/* > out/meta/SHA256SUMS.txt
+      - name: Fetch DVIDS public-domain footage
+        shell: bash
+        run: |
+          set -euo pipefail
+          ua='Mozilla/5.0'
+          fetch_dvids() {
+            dod="$1"; ym="$2"; outfile="$3"; page="$4"
+            for suffix in '1920x1080-6000k.mp4' '1280x720-3000k.mp4' '1280x720-2000k.mp4' '720x480-1500k.mp4'; do
+              url="https://d34w7g4gy10iej.cloudfront.net/video/${ym}/${dod}/${dod}-${suffix}"
+              if curl -L --fail --retry 2 -A "$ua" -o "$outfile" "$url"; then echo "$url" > "${outfile}.source.txt"; return 0; fi
+            done
+            python -m pip install -q yt-dlp
+            yt-dlp --no-playlist -f 'best[ext=mp4]/best' -o "$outfile" "$page"
+            printf '%s\n' "$page" > "${outfile}.source.txt"
+          }
+          fetch_dvids 'DOD_111706390' '2605' 'out/videos/VID_F22_demo_highAOA_PD-USAF.mp4' 'https://www.dvidshub.net/video/1007038/f-22-demonstration-team-performs-maxwell-air-force-base-b-roll'
+          fetch_dvids 'DOD_103445024' '1607' 'out/videos/VID_F16_landing_PD-USAF.mp4' 'https://www.dvidshub.net/video/472910/f-16'
+          sha256sum out/videos/* > out/meta/SHA256SUMS_VIDEO.txt
+          find out -maxdepth 2 -type f -printf '%p\t%s bytes\n' | sort
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tailwing-verified-real-media-20260830
+          path: out/
+          compression-level: 0
+          retention-days: 1
