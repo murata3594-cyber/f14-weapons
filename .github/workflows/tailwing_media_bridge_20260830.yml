@@ -1,4 +1,4 @@
-name: Tailwing verified media bridge tenth pass
+name: Tailwing verified media bridge eleventh pass
 on:
   push:
     paths:
@@ -10,25 +10,22 @@ jobs:
     steps:
       - name: Install ffmpeg
         run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
-      - name: Stage official acquired media and QC frames
+      - name: Isolate NASA X36 sequence
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p out/videos out/qc out/meta
           NASA='https://d2ol7oe51mr4n9.cloudfront.net/user_3IJiiIgecXaUy0qAi7prfFqLy4X/41359ac3-ea5e-4e8a-97d8-be7c0543ecba.mp4'
-          MERC='https://d2ol7oe51mr4n9.cloudfront.net/user_3IJiiIgecXaUy0qAi7prfFqLy4X/3ed65cfb-7fcc-4664-bba1-d80d1622e1fa.mp4'
           curl -L --fail --retry 3 -o nasa_x36_official.mp4 "$NASA"
-          curl -L --fail --retry 3 -o out/videos/VID_MERCEDES_CROSSWIND_ASSIST_OFFICIAL.mp4 "$MERC"
-          ffmpeg -y -loglevel error -ss 186 -i nasa_x36_official.mp4 -t 8 -c:v libx264 -preset fast -crf 18 -c:a aac -b:a 128k out/videos/VID_NASA_X36_GROUND_CONTROL_STATION_OFFICIAL.mp4
-          for t in 186 187 188 189 190 191 192 193; do ffmpeg -y -loglevel error -ss "$t" -i nasa_x36_official.mp4 -frames:v 1 -q:v 2 "out/qc/NASA_X36_GCS_${t}.jpg"; done
-          ffmpeg -y -loglevel error -ss 3 -i out/videos/VID_MERCEDES_CROSSWIND_ASSIST_OFFICIAL.mp4 -frames:v 1 -q:v 2 out/qc/MERCEDES_CROSSWIND_03.jpg
-          printf '%s\n' 'NASA source: NASA Armstrong Flight Research Center verified channel, Unmanned Aircraft Systems at NASA Dryden, YouTube Hbm2FCt9pHc. Clip 186-194 s.' 'Mercedes source: Mercedes-Benz India verified official channel, Get blown away with Crosswind Assist, YouTube SQX3XQywbXY.' > out/meta/SOURCES.txt
+          ffmpeg -y -loglevel error -ss 138 -i nasa_x36_official.mp4 -t 22 -c:v libx264 -preset fast -crf 18 -c:a aac -b:a 128k out/videos/VID_NASA_X36_FLIGHT_GCS_SEQUENCE_OFFICIAL.mp4
+          for t in 138 140 142 144 146 148 150 152 154 156 158; do ffmpeg -y -loglevel error -ss "$t" -i nasa_x36_official.mp4 -frames:v 1 -q:v 2 "out/qc/NASA_X36_${t}.jpg"; done
+          printf '%s\n' 'NASA source: NASA Armstrong Flight Research Center verified channel, Unmanned Aircraft Systems at NASA Dryden, YouTube Hbm2FCt9pHc. Candidate clip 138-160 s; must visually confirm X-36/GCS continuity before final use.' > out/meta/SOURCE.txt
           sha256sum out/videos/* > out/meta/SHA256SUMS.txt
           find out -maxdepth 2 -type f -printf '%p\t%s bytes\n' | sort
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: tailwing-tenth-pass-fixed
+          name: tailwing-eleventh-pass
           path: out/
           compression-level: 0
           retention-days: 1
