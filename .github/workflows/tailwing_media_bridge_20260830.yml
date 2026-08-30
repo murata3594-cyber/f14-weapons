@@ -14,18 +14,11 @@ jobs:
           set -u
           mkdir -p out/videos out/images out/meta
           python -m pip install -q yt-dlp
-
           yt-dlp --no-playlist -f 'best[ext=mp4]/best' -o 'out/videos/VID_FORD_TRANSIT_SIDE_WIND_STABILISATION_OFFICIAL.mp4' 'https://youtu.be/Aka7PXsjrgc' || true
           printf '%s\n' 'Ford official Side Wind Stabilisation video: https://youtu.be/Aka7PXsjrgc' > out/videos/VID_FORD_TRANSIT_SIDE_WIND_STABILISATION_OFFICIAL.mp4.source.txt
-
           curl -L --fail --retry 3 -A 'Mozilla/5.0' -o 'out/images/REFERENCE_J36_2024_FIRST_FLIGHT_RIGHTS_PENDING.jpeg' 'https://armyrecognition.com/templates/yootheme/cache/52/Exclusive_Secret_Combat_Capabilities_of_Chinas_New_Chengdu_J-36_Stealth_Fighter_Jet_Unveiled_Breaking_News_1920_001-52456543.jpeg' || true
           printf '%s\n' 'Army Recognition article image; source caption says Chengdu J-36 first flight, Dec 26 2024; picture source China Social Network; reuse rights not cleared.' > out/images/REFERENCE_J36_2024_FIRST_FLIGHT_RIGHTS_PENDING.jpeg.source.txt
-
-          cat > out/meta/SOURCES.tsv <<'EOF'
-file	section	license_source
-VID_FORD_TRANSIT_SIDE_WIND_STABILISATION_OFFICIAL.mp4	1-07	Ford official media / Side Wind Stabilisation; publication source confirms test track crosswind up to 80 km/h
-REFERENCE_J36_2024_FIRST_FLIGHT_RIGHTS_PENDING.jpeg	6-04	Army Recognition, Dec 29 2024; caption: J-36 first flight near Chengdu Dec 26 2024; China Social Network; RIGHTS PENDING
-EOF
+          printf '%s\n' 'file	section	license_source' 'VID_FORD_TRANSIT_SIDE_WIND_STABILISATION_OFFICIAL.mp4	1-07	Ford official media / Side Wind Stabilisation; publication source confirms test track crosswind up to 80 km/h' 'REFERENCE_J36_2024_FIRST_FLIGHT_RIGHTS_PENDING.jpeg	6-04	Army Recognition, Dec 29 2024; caption J-36 first flight near Chengdu Dec 26 2024; China Social Network; RIGHTS PENDING' > out/meta/SOURCES.tsv
           sha256sum out/videos/*.mp4 out/images/*.jpeg > out/meta/SHA256SUMS.txt 2>/dev/null || true
           find out -maxdepth 2 -type f -printf '%p\t%s bytes\n' | sort
       - name: Upload artifact
