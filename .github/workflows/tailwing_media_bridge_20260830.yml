@@ -1,4 +1,4 @@
-name: Tailwing verified media bridge twenty-third pass
+name: Tailwing verified media bridge twenty-fourth pass
 on:
   push:
     paths:
@@ -6,46 +6,41 @@ on:
 jobs:
   acquire:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
-      - name: Acquire rights-cleared rear-view stills
+      - name: Acquire unique F-15 and B-2 flight media
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p out/images out/meta
-          python - <<'PY'
-          import urllib.request, urllib.parse, pathlib
-          files={
-            'REAL_DH2_REAR_CC-BY2.jpg':'Airco DH.2 Rear Dawn Patrol NMUSAF 26Sept09 (14619993993).jpg',
-            'REAL_DH2_LSIDE_REAR_CC-BY2.jpg':'Airco DH.2 LSideRear Dawn Patrol NMUSAF 26Sept09 (14599293202).jpg',
-            'REAL_B2_REAR_VIEW_PD-USAF.jpg':'B-2 rear view.jpg',
-            'REAL_B2_REAR_DECELERONS_PD-USAF.jpg':'B-2 Spirit returns to WHITEMAN AIR FORCE BASE.jpg',
-            'REAL_F15J_RIGHT_REAR_CC-BY-SA4.jpg':'JASDF F-15J(82-8901) right rear view at Tsuiki Air Base November 26, 2017.jpg',
-            'REAL_F15_TAIL_CLOSE_PD-USAF.jpg':'Tail of an F-15 Eagle.jpg',
-          }
-          out=pathlib.Path('out/images')
-          for dst,name in files.items():
-              url='https://commons.wikimedia.org/wiki/Special:Redirect/file/'+urllib.parse.quote(name,safe='')
-              req=urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0'})
-              with urllib.request.urlopen(req,timeout=60) as r:
-                  data=r.read()
-              (out/dst).write_bytes(data)
-              print(dst,len(data),url)
-          PY
-          cat > out/meta/SOURCE.txt <<'EOF'
-          REAL_DH2_REAR_CC-BY2.jpg — Wikimedia Commons Airco DH.2 Rear Dawn Patrol; Valder137; CC BY 2.0.
-          REAL_DH2_LSIDE_REAR_CC-BY2.jpg — Wikimedia Commons Airco DH.2 LSideRear Dawn Patrol; Valder137; CC BY 2.0.
-          REAL_B2_REAR_VIEW_PD-USAF.jpg — Wikimedia Commons B-2 rear view; USAF; public domain.
-          REAL_B2_REAR_DECELERONS_PD-USAF.jpg — Wikimedia Commons B-2 Spirit returns to Whiteman; USAF; public domain; category Decelerons/rear views.
-          REAL_F15J_RIGHT_REAR_CC-BY-SA4.jpg — Wikimedia Commons JASDF F-15J 82-8901 right rear view; Hunini; CC BY-SA 4.0.
-          REAL_F15_TAIL_CLOSE_PD-USAF.jpg — Wikimedia Commons Tail of an F-15 Eagle; USAF; public domain.
+          mkdir -p out/videos out/images out/meta
+          python -m pip install -q yt-dlp
+
+          yt-dlp --no-playlist -f 'best[height<=720][ext=mp4]/best[height<=720]/best' \
+            -o 'out/videos/VID_F15E_AERIAL_DOGFIGHT_PD-USAF.mp4' \
+            'https://www.dvidshub.net/video/835409/f-15e-aerials'
+
+          yt-dlp --no-playlist -f 'best[height<=720][ext=mp4]/best[height<=720]/best' \
+            -o 'out/videos/VID_B2_INFLIGHT_BROLL_PD-USAF.mp4' \
+            'https://www.dvidshub.net/video/505698/b-2-flight-b-roll'
+
+          sudo apt-get update -qq >/dev/null 2>&1
+          sudo apt-get install -y -qq ffmpeg >/dev/null 2>&1
+          ffmpeg -y -loglevel error -ss 00:00:35 -i out/videos/VID_F15E_AERIAL_DOGFIGHT_PD-USAF.mp4 -frames:v 1 -q:v 2 out/images/REAL_F15E_INFLIGHT_AERIAL_PD-USAF.jpg || true
+          ffmpeg -y -loglevel error -ss 00:00:08 -i out/videos/VID_B2_INFLIGHT_BROLL_PD-USAF.mp4 -frames:v 1 -q:v 2 out/images/REAL_B2_INFLIGHT_OFFICIAL_PD-USAF.jpg || true
+
+          cat > out/meta/SOURCES.tsv <<'EOF'
+          file	source	license
+          VID_F15E_AERIAL_DOGFIGHT_PD-USAF.mp4	https://www.dvidshub.net/video/835409/f-15e-aerials	DVIDS / U.S. Air Force / Public Domain
+          VID_B2_INFLIGHT_BROLL_PD-USAF.mp4	https://www.dvidshub.net/video/505698/b-2-flight-b-roll	DVIDS / U.S. Air Force / Public Domain
+          REAL_F15E_INFLIGHT_AERIAL_PD-USAF.jpg	frame from VID_F15E_AERIAL_DOGFIGHT_PD-USAF.mp4	U.S. Air Force / Public Domain
+          REAL_B2_INFLIGHT_OFFICIAL_PD-USAF.jpg	frame from VID_B2_INFLIGHT_BROLL_PD-USAF.mp4	U.S. Air Force / Public Domain
           EOF
-          sha256sum out/images/* > out/meta/SHA256SUMS.txt
-          find out -type f -printf '%p\t%s bytes\n'
+          sha256sum out/videos/* out/images/* > out/meta/SHA256SUMS.txt
+          find out -type f -printf '%p\t%s bytes\n' | sort
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: tailwing-twenty-third-pass
+          name: tailwing-twenty-fourth-pass
           path: out/
           compression-level: 0
           retention-days: 1
