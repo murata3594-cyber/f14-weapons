@@ -1,4 +1,4 @@
-name: Tailwing verified media bridge fifth pass
+name: Tailwing verified media bridge sixth pass
 on:
   push:
     paths:
@@ -8,29 +8,20 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - name: Fetch official and exact-match media
+      - name: Fetch F35C and official PLA media
         shell: bash
         run: |
-          set -euo pipefail
+          set -u
           mkdir -p out/videos out/images out/meta
+          python -m pip install -q yt-dlp
           ua='Mozilla/5.0'
-          fetch_dvids() {
-            dod="$1"; ym="$2"; outfile="$3"; page="$4"
-            for folder in "$ym" '1702' '1608' '1703'; do
-              for suffix in '1920x1080-6000k.mp4' '1920x1080-5000k.mp4' '1280x720-3000k.mp4' '1280x720-2000k.mp4' '720x480-1500k.mp4'; do
-                url="https://d34w7g4gy10iej.cloudfront.net/video/${folder}/${dod}/${dod}-${suffix}"
-                if curl -L --fail --retry 2 -A "$ua" -o "$outfile" "$url"; then echo "$url" > "${outfile}.source.txt"; return 0; fi
-              done
-            done
-            python -m pip install -q yt-dlp
-            yt-dlp --no-playlist -f 'best[ext=mp4]/best' -o "$outfile" "$page"
-            printf '%s\n' "$page" > "${outfile}.source.txt"
-          }
 
-          # F-35C carrier test package explicitly documenting crosswind shipboard testing.
-          fetch_dvids 'DOD_104118738' '1702' 'out/videos/VID_F35C_DTIII_CROSSWIND_CARRIER_PD-USN.mp4' 'https://www.dvidshub.net/video/511857/f-35-lightning-ii-completes-dt-iii-aboard-uss-george-washington'
+          yt-dlp --no-playlist -f 'best[ext=mp4]/best' -o 'out/videos/VID_F35C_DTIII_CROSSWIND_CARRIER_PD-USN.mp4' 'https://www.dvidshub.net/video/511857/f-35-lightning-ii-completes-dt-iii-aboard-uss-george-washington' || true
+          printf '%s\n' 'https://www.dvidshub.net/video/511857/f-35-lightning-ii-completes-dt-iii-aboard-uss-george-washington' > out/videos/VID_F35C_DTIII_CROSSWIND_CARRIER_PD-USN.mp4.source.txt
 
-          # NASA Glenn official graphics/animations: discover page images rather than inventing filenames.
+          yt-dlp --no-playlist -f 'best[ext=mp4]/best' -o 'out/videos/VID_PLA_Y20_10TH_LITTLE_SIX_OFFICIAL_2026.mp4' 'https://www.81.cn/syjdt/16470193.html' || true
+          printf '%s\n' 'https://www.81.cn/syjdt/16470193.html' > out/videos/VID_PLA_Y20_10TH_LITTLE_SIX_OFFICIAL_2026.mp4.source.txt
+
           python - <<'PY'
           import re, urllib.request, urllib.parse, pathlib
           pages={
@@ -39,73 +30,45 @@ jobs:
             'NASA_RUDDER':'https://www.grc.nasa.gov/www/k-12/VirtualAero/BottleRocket/airplane/rud.html',
             'NASA_AXES':'https://www.grc.nasa.gov/www/k-12/airplane/rotations.html'
           }
-          out=pathlib.Path('out/images')
-          meta=[]
+          out=pathlib.Path('out/images'); meta=[]
           for key,page in pages.items():
             try:
               req=urllib.request.Request(page,headers={'User-Agent':'Mozilla/5.0'})
               html=urllib.request.urlopen(req,timeout=30).read().decode('latin1','ignore')
             except Exception as e:
-              meta.append(f'{key}\tPAGE_FAIL\t{e}')
-              continue
+              meta.append(f'{key}\tPAGE_FAIL\t{e}'); continue
             srcs=re.findall(r'(?:src|href)=[\"\']([^\"\']+\.(?:gif|jpg|jpeg|png))[\"\']',html,flags=re.I)
             n=0
             for s in srcs:
-              u=urllib.parse.urljoin(page,s)
-              low=u.lower()
+              u=urllib.parse.urljoin(page,s); low=u.lower()
               if 'logo' in low or 'button' in low or 'blank' in low: continue
               try:
                 req=urllib.request.Request(u,headers={'User-Agent':'Mozilla/5.0'})
                 data=urllib.request.urlopen(req,timeout=30).read()
                 if len(data)<5000: continue
-                ext=u.split('?')[0].rsplit('.',1)[-1].lower()
-                n+=1
-                fn=f'{key}_{n:02d}.{ext}'
-                (out/fn).write_bytes(data)
+                ext=u.split('?')[0].rsplit('.',1)[-1].lower(); n+=1
+                fn=f'{key}_{n:02d}.{ext}'; (out/fn).write_bytes(data)
                 meta.append(f'{fn}\t{u}\t{len(data)}')
-              except Exception as e:
-                pass
+              except Exception: pass
           pathlib.Path('out/meta/NASA_GRAPHICS_URLS.tsv').write_text('\n'.join(meta)+'\n')
           PY
 
-          # Try to recover the official China Military Network Y-20 anniversary film (contains official 'Little Six' glimpse).
-          python -m pip install -q yt-dlp
-          set +e
-          yt-dlp --no-playlist -f 'best[ext=mp4]/best' -o 'out/videos/VID_PLA_Y20_10TH_LITTLE_SIX_OFFICIAL.%(ext)s' 'https://www.81.cn/syjdt/16470193.html'
-          echo $? > out/meta/PLA_YTDLP_EXIT.txt
-          curl -L --max-time 30 -A "$ua" -s 'https://www.81.cn/syjdt/16470193.html' > out/meta/PLA_PAGE.html
-          grep -Eo 'https?[^"'"'"' <>]+\.(mp4|m3u8)(\?[^"'"'"' <>]+)?' out/meta/PLA_PAGE.html | sed 's/&amp;/\&/g' | sort -u > out/meta/PLA_MEDIA_URLS.txt || true
-          if [ -s out/meta/PLA_MEDIA_URLS.txt ]; then
-            i=0
-            while read -r u; do i=$((i+1)); curl -L --fail --retry 2 -A "$ua" -o "out/videos/VID_PLA_Y20_DISCOVERED_${i}.mp4" "$u" && break || true; done < out/meta/PLA_MEDIA_URLS.txt
-          fi
-          set -e
-
-          # Ford exact side-wind video: inspect current official/press-page embeds and try direct extraction.
-          set +e
-          yt-dlp --no-playlist -f 'best[ext=mp4]/best' -o 'out/videos/VID_FORD_SIDEWIND_OFFICIAL.%(ext)s' 'https://nyheder.ford.dk/news/ny-teknologi-holder-ford-transit-paa-plads-201285'
-          echo $? > out/meta/FORD_MYNEWSDESK_EXIT.txt
-          curl -L --max-time 30 -A "$ua" -s 'https://nyheder.ford.dk/news/ny-teknologi-holder-ford-transit-paa-plads-201285' > out/meta/FORD_PAGE.html
+          curl -L --max-time 30 -A "$ua" -s 'https://nyheder.ford.dk/news/ny-teknologi-holder-ford-transit-paa-plads-201285' > out/meta/FORD_PAGE.html || true
           grep -Eo 'https?[^"'"'"' <>]+(Aka7PXsjrgc|\.(mp4|m3u8))[^"'"'"' <>]*' out/meta/FORD_PAGE.html | sed 's/&amp;/\&/g' | sort -u > out/meta/FORD_MEDIA_URLS.txt || true
-          set -e
-
-          # Actual 26 Dec 2024 observed J-36/JH-XX flight image for internal reference only; rights not cleared for publication.
-          curl -L --fail --retry 3 -A "$ua" -o 'out/images/REFERENCE_J36_2024_FIRST_FLIGHT_RIGHTS_UNCLEARED.jpg' 'https://armyrecognition.com/templates/yootheme/cache/52/Exclusive_Secret_Combat_Capabilities_of_Chinas_New_Chengdu_J-36_Stealth_Fighter_Jet_Unveiled_Breaking_News_1920_001-52456543.jpeg'
 
           cat > out/meta/SOURCES.tsv <<'EOF'
           file	section	license_source
           VID_F35C_DTIII_CROSSWIND_CARRIER_PD-USN.mp4	6-02 candidate	DVIDS / U.S. Navy public domain; DT-III included crosswind testing
+          VID_PLA_Y20_10TH_LITTLE_SIX_OFFICIAL_2026.mp4	J-36 official-context backup	China Military Network / China Military Bugle official source; 2026 temporal mismatch for 2024 slots
           NASA_*.gif/jpg/png	1-02,1-03,1-05,1-10	NASA Glenn official
-          VID_PLA_Y20_10TH_LITTLE_SIX_OFFICIAL.*	J-36 official-context backup	China Military Network / China Military Bugle official source, 2026 not 2024
-          VID_FORD_SIDEWIND_OFFICIAL.*	1-07	Ford official press source, editorial-use only
-          REFERENCE_J36_2024_FIRST_FLIGHT_RIGHTS_UNCLEARED.jpg	OP-01,OP-03,6-04,6-05,7-08,ED-08 reference only	Actual search-hit observed-flight image; publication rights uncleared
           EOF
-          sha256sum out/videos/* out/images/* > out/meta/SHA256SUMS.txt 2>/dev/null || true
+          sha256sum out/videos/*.mp4 out/images/* > out/meta/SHA256SUMS.txt 2>/dev/null || true
           find out -maxdepth 2 -type f -printf '%p\t%s bytes\n' | sort
       - name: Upload artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: tailwing-official-exact-fifth-pass
+          name: tailwing-salvage-sixth-pass
           path: out/
           compression-level: 0
           retention-days: 1
