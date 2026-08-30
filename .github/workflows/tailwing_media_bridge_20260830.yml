@@ -1,4 +1,4 @@
-name: Tailwing verified media bridge thirteenth pass
+name: Tailwing verified media bridge fourteenth pass
 on:
   push:
     paths:
@@ -6,48 +6,46 @@ on:
 jobs:
   acquire:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     steps:
-      - name: Acquire exact official media
+      - name: Install tools
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg && python -m pip install -q -U yt-dlp
+      - name: Acquire official crosswind and landing media
         shell: bash
         run: |
-          set -euo pipefail
-          mkdir -p out/videos out/images out/meta
-          python -m pip install -q -U yt-dlp
+          set -u
+          mkdir -p out/videos out/images out/qc out/meta
 
-          curl -L --fail --retry 3 -A 'Mozilla/5.0' -o out/images/NASA_X36_REMOTE_COCKPIT_EC97-44238-02.jpg 'https://www.nasa.gov/wp-content/uploads/2023/03/354697main_EC97-44238-02_full.jpg'
-          printf '%s\n' 'NASA X-36 Cockpit image article, EC97-44238-02, NASA Photo/Jim Ross.' > out/images/NASA_X36_REMOTE_COCKPIT_EC97-44238-02.jpg.source.txt
+          yt-dlp --no-playlist -f 'bestvideo+bestaudio/best' --merge-output-format mp4 -o 'out/videos/VID_F35B_WET_RUNWAY_CROSSWIND_NAVAIR_OFFICIAL.%(ext)s' 'https://www.youtube.com/watch?v=hTT35_AoFhM' || true
+          printf '%s\n' 'NAVAIRSYSCOM official YouTube, F-35B wet runway and crosswind landing tests, Aug 22 2014, Pax River ITF.' > out/meta/F35B_CROSSWIND_SOURCE.txt
 
-          python - <<'PY'
-          import re, urllib.request, html
-          page='https://www.dvidshub.net/image/4208446/f-35b-nears-sdd-phase-completion'
-          req=urllib.request.Request(page,headers={'User-Agent':'Mozilla/5.0'})
-          txt=urllib.request.urlopen(req,timeout=30).read().decode('utf-8','ignore')
-          pats=[r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)',r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\']']
-          url=None
-          for p in pats:
-            m=re.search(p,txt,re.I)
-            if m: url=html.unescape(m.group(1)); break
-          if not url: raise SystemExit('no og:image')
-          print(url)
-          req=urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0'})
-          data=urllib.request.urlopen(req,timeout=60).read()
-          open('out/images/F35B_CROSSWIND_CREEPING_STOVL_PD.jpg','wb').write(data)
-          open('out/meta/F35B_IMAGE_URL.txt','w').write(url+'\n')
+          yt-dlp --no-playlist -o 'out/videos/VID_F15_TAKEOFF_LANDING_BROLL_PD-USAF.%(ext)s' 'https://www.dvidshub.net/video/700572/f-15-takeoff-and-landing-b-roll' || true
+          yt-dlp --no-playlist -o 'out/videos/VID_F16_LANDING_TUCSON_PD-USAF.%(ext)s' 'https://www.dvidshub.net/video/472910/f-16' || true
+
+          curl -L --fail --retry 3 -A 'Mozilla/5.0' -o 'out/images/FORD_TRANSIT_SIDEWIND_PRESS_IMAGE.jpg' 'https://cache.pressmailing.net/content/2778e386-f643-4434-97e2-ae97b756874a/image' || true
+          printf '%s\n' 'Ford-Werke press image distributed via Presseportal; Transit Side Wind Assistant visual. Ford Media release confirms Side Wind Stabilisation test track/public-road testing.' > out/meta/FORD_IMAGE_SOURCE.txt
+
+          for f in out/videos/*; do
+            [ -f "$f" ] || continue
+            base=$(basename "$f")
+            dur=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$f" 2>/dev/null || echo 0)
+            python - "$f" "$base" "$dur" <<'PY'
+          import sys,subprocess,os
+          f,base,dur=sys.argv[1],sys.argv[2],float(sys.argv[3] or 0)
+          if dur<=0: raise SystemExit
+          times=[dur*x/8 for x in range(1,8)]
+          for i,t in enumerate(times,1):
+              out=f'out/qc/{base}_{i:02d}.jpg'
+              subprocess.run(['ffmpeg','-y','-loglevel','error','-ss',str(t),'-i',f,'-frames:v','1','-vf','scale=960:-2','-q:v','3',out])
           PY
-          printf '%s\n' 'DVIDS image 4208446; Peter Wilson completes crosswind creeping short take off and vertical landing testing with BF-1 F-35B, Mar 5 2018; PUBLIC DOMAIN.' > out/images/F35B_CROSSWIND_CREEPING_STOVL_PD.jpg.source.txt
-
-          yt-dlp --no-playlist -o 'out/videos/VID_F35B_USS_AMERICA_LANDING_PD-USN.%(ext)s' 'https://www.dvidshub.net/video/490300/f-35b-lightning-ii-tested-aboard-uss-america'
-          f=$(ls out/videos/VID_F35B_USS_AMERICA_LANDING_PD-USN.* | grep -v source | head -1)
-          if [[ "$f" != *.mp4 ]]; then ffmpeg -y -loglevel error -i "$f" -c copy out/videos/VID_F35B_USS_AMERICA_LANDING_PD-USN.mp4 || true; fi
-          printf '%s\n' 'DVIDS video 490300, U.S. Navy, F-35B landing aboard USS America, PUBLIC DOMAIN.' > out/videos/VID_F35B_USS_AMERICA_LANDING_PD-USN.source.txt
+          done
 
           find out -maxdepth 2 -type f -printf '%p\t%s bytes\n' | sort
       - name: Upload artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: tailwing-thirteenth-pass
+          name: tailwing-fourteenth-pass
           path: out/
           compression-level: 0
           retention-days: 1
