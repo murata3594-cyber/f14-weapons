@@ -1,4 +1,4 @@
-name: Tailwing verified media bridge twenty-first pass
+name: Tailwing verified media bridge twenty-second pass
 on:
   push:
     paths:
@@ -6,31 +6,27 @@ on:
 jobs:
   acquire:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
-      - name: Install media tools
-        run: python -m pip install -q -U yt-dlp
-      - name: Acquire alternate real crosswind candidates
+      - name: Acquire Wikimedia rights-cleared media
         shell: bash
         run: |
-          set -u
+          set -euo pipefail
           mkdir -p out/videos out/images out/meta
-          yt-dlp --no-playlist -f 'best[height<=1080]/best' -o 'out/videos/VID_MERCEDES_SPRINTER_ASSIST_SYSTEMS_DAILYMOTION_RIGHTS_CHECK.%(ext)s' 'https://www.dailymotion.com/video/x6nsw5b' || true
-          yt-dlp --no-playlist -f 'best[height<=1080]/best' -o 'out/videos/VID_MERCEDES_CROSSWIND_ASSIST_VIMEO_RIGHTS_CHECK.%(ext)s' 'https://vimeo.com/133792996' || true
-          curl -L --retry 3 -A 'Mozilla/5.0' -sS -o 'out/images/MERCEDES_SPRINTER_CROSSWIND_REAL_TEST_MOTORBOX_RIGHTS_CHECK.jpg' 'https://media.motorbox.com/image/mercedes-crosswind-assist/4/0/7/407232/407232-16x9-lg.jpg' || true
-          curl -L --retry 3 -A 'Mozilla/5.0' -sS -o 'out/images/MERCEDES_SPRINTER_CROSSWIND_DEMO_FLEETOWNER_RIGHTS_CHECK.png' 'https://img.fleetowner.com/files/base/ebm/fleetowner/image/2019/04/fleetowner_12636_crossopen.png?auto=format%2Ccompress&fill=blur&fit=fill&h=630&w=1200' || true
+          curl -L --fail --retry 3 -A 'Mozilla/5.0' -o 'out/images/REAL_LIGHT_AIRCRAFT_RUDDER_TRIM_CC0.jpg' 'https://commons.wikimedia.org/wiki/Special:Redirect/file/Light_aircraft_rudder_and_trim_tab.JPG'
+          curl -L --fail --retry 3 -A 'Mozilla/5.0' -o 'out/images/REAL_LIGHT_AIRCRAFT_ELEVATOR_TRIM_CC0.jpg' 'https://commons.wikimedia.org/wiki/Special:Redirect/file/Light_aircraft_elevator_and_trim_tab.JPG'
+          curl -L --fail --retry 3 -A 'Mozilla/5.0' -o 'out/videos/VID_DOOR_FLAP_MECHANISM_PD.webm' 'https://commons.wikimedia.org/wiki/Special:Redirect/file/Arm_and_door_flap_demo.webm'
           cat > out/meta/SOURCE.txt <<'EOF'
-          Dailymotion x6nsw5b: AutoMotoTV mirror of 2013 Mercedes-Benz Sprinter assist systems press footage, includes Crosswind Assist; editorial rights check.
-          Vimeo 133792996: All Things Media production titled Mercedes-Benz | 2015 Crosswind Assist; rights check required.
-          Motorbox image: real red Sprinter on controlled crosswind test track with windsock; editorial rights check.
-          FleetOwner image: real black Sprinter Crosswind Assist demonstration vehicle; editorial rights check.
+          REAL_LIGHT_AIRCRAFT_RUDDER_TRIM_CC0.jpg — Wikimedia Commons File:Light aircraft rudder and trim tab.JPG; YSSYguy; CC0.
+          REAL_LIGHT_AIRCRAFT_ELEVATOR_TRIM_CC0.jpg — Wikimedia Commons File:Light aircraft elevator and trim tab.JPG; YSSYguy; CC0.
+          VID_DOOR_FLAP_MECHANISM_PD.webm — Wikimedia Commons File:Arm and door flap demo.webm; ChandlerSBaird; public domain. Supplemental mechanical-door/flap lever-arm context, not a human finger-vs-hinge demonstration.
           EOF
+          sha256sum out/images/* out/videos/* > out/meta/SHA256SUMS.txt
           find out -type f -printf '%p\t%s bytes\n'
       - name: Upload artifact
-        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: tailwing-twenty-first-pass
+          name: tailwing-twenty-second-pass
           path: out/
           compression-level: 0
           retention-days: 1
