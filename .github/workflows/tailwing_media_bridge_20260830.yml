@@ -1,4 +1,4 @@
-name: Tailwing verified media bridge eighth pass
+name: Tailwing verified media bridge ninth pass
 on:
   push:
     paths:
@@ -6,26 +6,22 @@ on:
 jobs:
   fetch:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
     steps:
-      - name: Fetch J36 2024 and NASA X36 official video
+      - name: Fetch Mercedes official crosswind assist
         shell: bash
         run: |
           set -u
-          mkdir -p out/videos out/images out/meta
+          mkdir -p out/videos out/meta
           python -m pip install -q yt-dlp
-          yt-dlp --no-playlist -f 'best[ext=mp4]/best' -o 'out/videos/VID_NASA_UNMANNED_AIRCRAFT_DRYDEN_X36_OFFICIAL.mp4' 'https://www.youtube.com/watch?v=Hbm2FCt9pHc' || true
-          printf '%s\n' 'NASA Armstrong Flight Research Center verified channel: Unmanned Aircraft Systems at NASA Dryden' > out/videos/VID_NASA_UNMANNED_AIRCRAFT_DRYDEN_X36_OFFICIAL.mp4.source.txt
-          curl -L --fail --retry 3 -A 'Mozilla/5.0' -o 'out/images/REFERENCE_J36_2024_01_RIGHTS_PENDING.jpg' 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjffMCXNAJsA8RqFYZgrdDl2lf2uVl_HSz4y1Le59d7gEAlyglYIntW9p4nDl938wdCBwAfNW8IhXJYizv-nxdb00aEdMP4Bj8lqw5gxj9urXMYi-7kLC9lIv-eh9HoQ87L2nI7WEe7jazRqc4Ppg74eFwGgtw_uwV7_RsQOH1J3X8Dk-oG3zjg/w640-h426/81637b14-c43a-11ef-b67e-02001701d894.jpg' || true
-          curl -L --fail --retry 3 -A 'Mozilla/5.0' -o 'out/images/REFERENCE_J36_2024_02_RIGHTS_PENDING.jpg' 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi6F916_ifEne1AYrqFOx8hOBic45SubgZBbvTCs9RjuQDNbfCUv-Kp6ip7tB4BYKHObsFjapcathuzUe6JHzixGVwxvYArvDaBcHf4xaWMan-TVIuQE7oLksMQ58UfxDYNGP4P6VUnfSsXc2f6SV2WMuireKdhyphenhyphenQRPGqDfAWKMyg9fhDwHNHVO/w640-h640/1c4f04ee-c43c-11ef-bced-02001701d894.jpg' || true
-          printf '%s\n' 'China Defense Blog post dated 2024-12-27; real J-36 36011 photos; copyright/reuse rights not cleared.' > out/images/REFERENCE_J36_2024_01_RIGHTS_PENDING.jpg.source.txt
-          printf '%s\n' 'China Defense Blog post dated 2024-12-27; real J-36 36011 photos; copyright/reuse rights not cleared.' > out/images/REFERENCE_J36_2024_02_RIGHTS_PENDING.jpg.source.txt
+          yt-dlp --no-playlist -f '135+140/135' --merge-output-format mp4 -o 'out/videos/VID_MERCEDES_CROSSWIND_ASSIST_OFFICIAL.%(ext)s' 'https://www.youtube.com/watch?v=SQX3XQywbXY' || true
+          printf '%s\n' 'Mercedes-Benz India verified official channel: Get blown away with Crosswind Assist. Real-road crosswind drift and correction demonstration.' > out/meta/SOURCE.txt
           find out -maxdepth 2 -type f -printf '%p\t%s bytes\n' | sort
       - name: Upload artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: tailwing-eighth-pass
+          name: tailwing-ninth-pass
           path: out/
           compression-level: 0
           retention-days: 1
