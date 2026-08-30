@@ -1,4 +1,4 @@
-name: Tailwing verified media bridge second pass
+name: Tailwing verified media bridge third pass
 on:
   push:
     paths:
@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - name: Fetch exact-match real media
+      - name: Fetch remaining exact-match real media
         shell: bash
         run: |
           set -euo pipefail
@@ -26,35 +26,42 @@ jobs:
             printf '%s\n' "$page" > "${outfile}.source.txt"
           }
 
-          # Exact aerial F-22 demonstration, not taxi/static b-roll.
-          fetch_dvids 'DOD_111473422' '2505' 'out/videos/VID_F22_AERIAL_DEMO_PD-USAF.mp4' 'https://www.dvidshub.net/video/992558/f-22-raptor-aerial-demonstration-team-performs-air-dot-show-tour-ft-lauderdale-2025-b-roll'
+          # F-22 exact slow-motion powerloop/high-angle maneuver.
+          fetch_dvids 'DOD_110635365' '2410' 'out/videos/VID_F22_POWERLOOP_HIGH_AOA_PD-USAF.mp4' 'https://www.dvidshub.net/video/940884/slow-motion-powerloop-with-flare'
 
-          # Multiple fighter landing sources for rear/crosswind/rudder QC.
-          fetch_dvids 'DOD_108689438' '2111' 'out/videos/VID_F16_DAY_LANDINGS_PD-USAF.mp4' 'https://www.dvidshub.net/video/822145/f-16-daytime-take-offs-and-landings'
-          fetch_dvids 'DOD_103258025' '1604' 'out/videos/VID_F18_F15_F4_LANDINGS_PD-USAF.mp4' 'https://www.dvidshub.net/video/461222/aircraft-landing'
+          # Fighter landing material for rear/oblique/recovery and control-surface review.
+          fetch_dvids 'DOD_101937826' '1409' 'out/videos/VID_FA18_CARRIER_LANDINGS_PD-USN.mp4' 'https://www.dvidshub.net/video/360100/f-18-hornets-land-flight-deck-aircraft-carrier-uss-george-hw-bush-cvn-77'
+          fetch_dvids 'DOD_107079780' '1908' 'out/videos/VID_F15_TAKEOFF_LANDING_PD-USAF.mp4' 'https://www.dvidshub.net/video/700572/f-15-takeoff-and-landing-b-roll'
+          fetch_dvids 'DOD_100213906' '1107' 'out/videos/VID_F16_SHORT_LANDING_PD-USAF.mp4' 'https://www.dvidshub.net/video/121419/us-air-national-guard-f-16-comes-landing'
 
-          # Real control-surface stills.
-          wcurl 'https://commons.wikimedia.org/wiki/Special:Redirect/file/ATR_72_left_aileron_seen_from_rear.jpg' 'out/images/REAL_AILERON_ATR72_rear_CC0.jpg'
-          wcurl 'https://commons.wikimedia.org/wiki/Special:Redirect/file/Aileron_horn_of_ATR_72_%28left_wing%29.jpg' 'out/images/REAL_AILERON_ATR72_horn_CC0.jpg'
+          # Exact X-36 remote cockpit and period flying-wing backup.
+          wcurl 'https://commons.wikimedia.org/wiki/Special:Redirect/file/X-36_Remote_Cockpit.jpg' 'out/images/REAL_X36_REMOTE_COCKPIT_NASA.jpg'
+          wcurl 'https://commons.wikimedia.org/wiki/Special:Redirect/file/1944_Northrop_N-9M_Flying_Wing_%2810274031325%29.jpg' 'out/images/REAL_N9M_1944_CC-BY-SA2.jpg'
 
-          # Additional NASA X-36 archival stills to support the exact 1997 sequence.
-          wcurl 'https://commons.wikimedia.org/wiki/Special:Redirect/file/X-36_Tailless_Fighter_Agility_Research_Aircraft_on_lakebed_during_high-speed_taxi_tests_DVIDS738104.jpg' 'out/images/REAL_X36_highspeed_taxi_NASA.jpg'
+          # Exact car-crosswind manufacturer test. Ford Media Center states multimedia is supplied for editorial use.
+          python -m pip install -q yt-dlp
+          set +e
+          yt-dlp --no-playlist -f 'best[ext=mp4]/best' -o 'out/videos/VID_FORD_TRANSIT_SIDEWIND_EDITORIAL.%(ext)s' 'https://media.ford.com/content/fordmedia/feu/ch/de/news/2016/11/25/braced-for-winter-storms--new-side-wind-stabilisation-tech-helps.html'
+          ford_rc=$?
+          set -e
+          printf '%s\n' "$ford_rc" > out/meta/FORD_FETCH_EXIT.txt
 
           cat > out/meta/SOURCES.tsv <<'EOF'
           file	section	license_source
-          VID_F22_AERIAL_DEMO_PD-USAF.mp4	2-02,3-06,7-02	DVIDS / U.S. Air Force public domain
-          VID_F16_DAY_LANDINGS_PD-USAF.mp4	6-02 candidate	DVIDS / U.S. Air Force public domain
-          VID_F18_F15_F4_LANDINGS_PD-USAF.mp4	6-02 candidate	DVIDS / U.S. Air Force public domain
-          REAL_AILERON_ATR72_rear_CC0.jpg	1-05	Wikimedia Commons CC0
-          REAL_AILERON_ATR72_horn_CC0.jpg	1-05 backup	Wikimedia Commons CC0
-          REAL_X36_highspeed_taxi_NASA.jpg	5-08 backup	NASA public domain
+          VID_F22_POWERLOOP_HIGH_AOA_PD-USAF.mp4	2-02,3-06,7-02	DVIDS / U.S. Air Force public domain
+          VID_FA18_CARRIER_LANDINGS_PD-USN.mp4	6-02 candidate	DVIDS / U.S. Navy public domain
+          VID_F15_TAKEOFF_LANDING_PD-USAF.mp4	1-03,6-02 candidate	DVIDS / U.S. Air Force public domain
+          VID_F16_SHORT_LANDING_PD-USAF.mp4	6-02 candidate	DVIDS / U.S. Air Force public domain
+          REAL_X36_REMOTE_COCKPIT_NASA.jpg	5-08	NASA public domain via Wikimedia Commons
+          REAL_N9M_1944_CC-BY-SA2.jpg	OP-04 backup	Wikimedia Commons CC BY-SA 2.0
+          VID_FORD_TRANSIT_SIDEWIND_EDITORIAL.*	1-07 candidate	Ford Media Center editorial-use multimedia
           EOF
-          sha256sum out/videos/* out/images/* > out/meta/SHA256SUMS.txt
+          sha256sum out/videos/* out/images/* > out/meta/SHA256SUMS.txt 2>/dev/null || true
           find out -maxdepth 2 -type f -printf '%p\t%s bytes\n' | sort
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: tailwing-exact-real-media-second-pass
+          name: tailwing-exact-real-media-third-pass
           path: out/
           compression-level: 0
           retention-days: 1
