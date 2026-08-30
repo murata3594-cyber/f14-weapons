@@ -1,4 +1,4 @@
-name: Tailwing verified media bridge
+name: Tailwing verified media bridge second pass
 on:
   push:
     paths:
@@ -6,45 +6,18 @@ on:
 jobs:
   fetch:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
-      - name: Fetch open-license media
+      - name: Fetch exact-match real media
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p out/videos out/images out/meta
           ua='Mozilla/5.0'
           wcurl() { curl -L --fail --retry 4 --retry-delay 2 -A "$ua" -o "$2" "$1"; }
-          wcurl 'https://commons.wikimedia.org/wiki/Special:Redirect/file/Bowhunter_shooting_arrow_slow_motion_video_01.webm' 'out/videos/VID_ARROW_slowmotion_CC-BY3.webm'
-          wcurl 'https://commons.wikimedia.org/wiki/Special:Redirect/file/X-29_flight_maneuvers.ogv' 'out/videos/VID_X29_maneuvers_NASA.ogv'
-          wcurl 'https://commons.wikimedia.org/wiki/Special:Redirect/file/Crosswind%26Hard_landing%21_FedEx_Express_N608FE_McDonnell_Douglas_MD-11F.ogv' 'out/videos/VID_CROSSWIND_landing_CC-BY3.ogv'
-          wcurl 'https://commons.wikimedia.org/wiki/Special:Redirect/file/Different-Types-of-Door-Opening-Motions-as-Contributing-Factors-to-Containment-Failures-in-Hospital-pone.0066663.s003.ogv' 'out/videos/VID_DOOR_hinged_CC.ogv'
-          wcurl 'https://commons.wikimedia.org/wiki/Special:Redirect/file/X-47B_Completes_First_Carrier-based_Arrested_Landing_%282%29.ogv' 'out/videos/VID_X47B_carrier_arrested_landing_PD-USN.ogv'
-          wcurl 'https://commons.wikimedia.org/wiki/Special:Redirect/file/AD-Skyraider-rudder.jpg' 'out/images/REAL_RUDDER_AD-Skyraider.jpg'
-          wcurl 'https://commons.wikimedia.org/wiki/Special:Redirect/file/The_AFTI_F-16_flying_at_high_angle_of_attack%2C_shown_in_the_final_configuration_and_paint_finish_%28EC91-630-8%29.jpg' 'out/images/REAL_F16_high_AOA_NASA.jpg'
-          wcurl 'https://commons.wikimedia.org/wiki/Special:Redirect/file/X-36_Taking_off_during_First_Flight_DVIDS741675.jpg' 'out/images/REAL_X36_first_flight_NASA.jpg'
-          wcurl 'https://commons.wikimedia.org/wiki/Special:Redirect/file/X-36_on_Ground_after_Radio_and_Telemetry_Tests_DVIDS684937.jpg' 'out/images/REAL_X36_ground_NASA.jpg'
-          cat > out/meta/SOURCES.tsv <<'EOF'
-          file	section	license_source
-          VID_ARROW_slowmotion_CC-BY3.webm	OP-02,ED-04	Commons CC BY 3.0 / DK WAI
-          VID_X29_maneuvers_NASA.ogv	1-03,7-02	Commons / NASA
-          VID_CROSSWIND_landing_CC-BY3.ogv	6-02	Commons CC BY 3.0
-          VID_DOOR_hinged_CC.ogv	1-12	Commons / PLOS ONE open access
-          VID_X47B_carrier_arrested_landing_PD-USN.ogv	6-03	Commons / U.S. Navy PD
-          REAL_RUDDER_AD-Skyraider.jpg	1-10	Commons
-          REAL_F16_high_AOA_NASA.jpg	2-02,7-02	NASA
-          REAL_X36_first_flight_NASA.jpg	5-08	NASA
-          REAL_X36_ground_NASA.jpg	5-08	NASA
-          EOF
-          sha256sum out/videos/* out/images/* > out/meta/SHA256SUMS.txt
-      - name: Fetch DVIDS public-domain footage
-        shell: bash
-        run: |
-          set -euo pipefail
-          ua='Mozilla/5.0'
           fetch_dvids() {
             dod="$1"; ym="$2"; outfile="$3"; page="$4"
-            for suffix in '1920x1080-6000k.mp4' '1280x720-3000k.mp4' '1280x720-2000k.mp4' '720x480-1500k.mp4'; do
+            for suffix in '1920x1080-6000k.mp4' '1920x1080-5000k.mp4' '1280x720-3000k.mp4' '1280x720-2000k.mp4' '720x480-1500k.mp4'; do
               url="https://d34w7g4gy10iej.cloudfront.net/video/${ym}/${dod}/${dod}-${suffix}"
               if curl -L --fail --retry 2 -A "$ua" -o "$outfile" "$url"; then echo "$url" > "${outfile}.source.txt"; return 0; fi
             done
@@ -52,14 +25,36 @@ jobs:
             yt-dlp --no-playlist -f 'best[ext=mp4]/best' -o "$outfile" "$page"
             printf '%s\n' "$page" > "${outfile}.source.txt"
           }
-          fetch_dvids 'DOD_111706390' '2605' 'out/videos/VID_F22_demo_highAOA_PD-USAF.mp4' 'https://www.dvidshub.net/video/1007038/f-22-demonstration-team-performs-maxwell-air-force-base-b-roll'
-          fetch_dvids 'DOD_103445024' '1607' 'out/videos/VID_F16_landing_PD-USAF.mp4' 'https://www.dvidshub.net/video/472910/f-16'
-          sha256sum out/videos/* > out/meta/SHA256SUMS_VIDEO.txt
+
+          # Exact aerial F-22 demonstration, not taxi/static b-roll.
+          fetch_dvids 'DOD_111473422' '2505' 'out/videos/VID_F22_AERIAL_DEMO_PD-USAF.mp4' 'https://www.dvidshub.net/video/992558/f-22-raptor-aerial-demonstration-team-performs-air-dot-show-tour-ft-lauderdale-2025-b-roll'
+
+          # Multiple fighter landing sources for rear/crosswind/rudder QC.
+          fetch_dvids 'DOD_108689438' '2111' 'out/videos/VID_F16_DAY_LANDINGS_PD-USAF.mp4' 'https://www.dvidshub.net/video/822145/f-16-daytime-take-offs-and-landings'
+          fetch_dvids 'DOD_103258025' '1604' 'out/videos/VID_F18_F15_F4_LANDINGS_PD-USAF.mp4' 'https://www.dvidshub.net/video/461222/aircraft-landing'
+
+          # Real control-surface stills.
+          wcurl 'https://commons.wikimedia.org/wiki/Special:Redirect/file/ATR_72_left_aileron_seen_from_rear.jpg' 'out/images/REAL_AILERON_ATR72_rear_CC0.jpg'
+          wcurl 'https://commons.wikimedia.org/wiki/Special:Redirect/file/Aileron_horn_of_ATR_72_%28left_wing%29.jpg' 'out/images/REAL_AILERON_ATR72_horn_CC0.jpg'
+
+          # Additional NASA X-36 archival stills to support the exact 1997 sequence.
+          wcurl 'https://commons.wikimedia.org/wiki/Special:Redirect/file/X-36_Tailless_Fighter_Agility_Research_Aircraft_on_lakebed_during_high-speed_taxi_tests_DVIDS738104.jpg' 'out/images/REAL_X36_highspeed_taxi_NASA.jpg'
+
+          cat > out/meta/SOURCES.tsv <<'EOF'
+          file	section	license_source
+          VID_F22_AERIAL_DEMO_PD-USAF.mp4	2-02,3-06,7-02	DVIDS / U.S. Air Force public domain
+          VID_F16_DAY_LANDINGS_PD-USAF.mp4	6-02 candidate	DVIDS / U.S. Air Force public domain
+          VID_F18_F15_F4_LANDINGS_PD-USAF.mp4	6-02 candidate	DVIDS / U.S. Air Force public domain
+          REAL_AILERON_ATR72_rear_CC0.jpg	1-05	Wikimedia Commons CC0
+          REAL_AILERON_ATR72_horn_CC0.jpg	1-05 backup	Wikimedia Commons CC0
+          REAL_X36_highspeed_taxi_NASA.jpg	5-08 backup	NASA public domain
+          EOF
+          sha256sum out/videos/* out/images/* > out/meta/SHA256SUMS.txt
           find out -maxdepth 2 -type f -printf '%p\t%s bytes\n' | sort
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: tailwing-verified-real-media-20260830
+          name: tailwing-exact-real-media-second-pass
           path: out/
           compression-level: 0
           retention-days: 1
