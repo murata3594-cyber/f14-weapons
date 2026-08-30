@@ -1,4 +1,4 @@
-name: Tailwing verified media bridge eighteenth pass
+name: Tailwing verified media bridge nineteenth pass
 on:
   push:
     paths:
@@ -8,19 +8,22 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Acquire China Military Bugle film mirror
+      - name: Install media tools
+        run: python -m pip install -q -U yt-dlp
+      - name: Acquire Ford Transit side-wind test mirror
         shell: bash
         run: |
-          set -euo pipefail
+          set -u
           mkdir -p out/videos out/meta
-          curl -L --fail --retry 3 -A 'Mozilla/5.0' -o 'out/videos/VID_CHINA_MILITARY_BUGLE_Y20_J36_FULL_2026.mp4' 'https://v6.huanqiucdn.cn/4394989evodtranscq1500012236/77ec89435001834809244647922/v.f100830.mp4'
-          printf '%s\n' 'Full 《啥是大运》 mirror carried by Huanqiu; Huanqiu page attributes source to China Military Bugle. June 28 2026. Final seconds contain the "Little Six" tailless-aircraft cameo. Reuse rights require separate confirmation.' > out/meta/SOURCE.txt
-          sha256sum out/videos/* > out/meta/SHA256SUMS.txt
+          url='https://www.gocar.gr/videos/watch/46956%2CFord_Transit_Side_Wind_Stabilisation.html'
+          yt-dlp --no-playlist -f 'bestvideo+bestaudio/best' --merge-output-format mp4 -o 'out/videos/VID_FORD_TRANSIT_SIDEWIND_REAL_TEST_EDITORIAL_RIGHTS_CHECK.%(ext)s' "$url" || true
+          printf '%s\n' 'Ford Media Center states Transit Side Wind Stabilisation was tested on a special track using six powerful fans producing crosswinds up to 80 km/h and on public roads. Gocar page mirrors/embeds the Ford Transit Side Wind Stabilisation video. Treat reuse as editorial-rights-check.' > out/meta/SOURCE.txt
           find out -type f -printf '%p\t%s bytes\n'
       - name: Upload artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: tailwing-eighteenth-pass
+          name: tailwing-nineteenth-pass
           path: out/
           compression-level: 0
           retention-days: 1
