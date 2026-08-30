@@ -1,29 +1,53 @@
-name: Tailwing verified media bridge twelfth pass
+name: Tailwing verified media bridge thirteenth pass
 on:
   push:
     paths:
       - '.github/workflows/tailwing_media_bridge_20260830.yml'
 jobs:
-  map:
+  acquire:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
-      - name: Install ffmpeg
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
-      - name: Extract five-second QC map
+      - name: Acquire exact official media
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p out/qc out/meta
-          NASA='https://d2ol7oe51mr4n9.cloudfront.net/user_3IJiiIgecXaUy0qAi7prfFqLy4X/41359ac3-ea5e-4e8a-97d8-be7c0543ecba.mp4'
-          curl -L --fail --retry 3 -o nasa_uas.mp4 "$NASA"
-          for t in $(seq 0 5 220); do ffmpeg -y -loglevel error -ss "$t" -i nasa_uas.mp4 -frames:v 1 -vf 'scale=640:-2' -q:v 3 "out/qc/NASA_MAP_${t}.jpg"; done
-          printf '%s\n' 'Five-second frame map of NASA Armstrong verified official UAS video Hbm2FCt9pHc. Use only to locate an exact X-36/GCS sequence.' > out/meta/README.txt
+          mkdir -p out/videos out/images out/meta
+          python -m pip install -q -U yt-dlp
+
+          curl -L --fail --retry 3 -A 'Mozilla/5.0' -o out/images/NASA_X36_REMOTE_COCKPIT_EC97-44238-02.jpg 'https://www.nasa.gov/wp-content/uploads/2023/03/354697main_EC97-44238-02_full.jpg'
+          printf '%s\n' 'NASA X-36 Cockpit image article, EC97-44238-02, NASA Photo/Jim Ross.' > out/images/NASA_X36_REMOTE_COCKPIT_EC97-44238-02.jpg.source.txt
+
+          python - <<'PY'
+          import re, urllib.request, html
+          page='https://www.dvidshub.net/image/4208446/f-35b-nears-sdd-phase-completion'
+          req=urllib.request.Request(page,headers={'User-Agent':'Mozilla/5.0'})
+          txt=urllib.request.urlopen(req,timeout=30).read().decode('utf-8','ignore')
+          pats=[r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)',r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\']']
+          url=None
+          for p in pats:
+            m=re.search(p,txt,re.I)
+            if m: url=html.unescape(m.group(1)); break
+          if not url: raise SystemExit('no og:image')
+          print(url)
+          req=urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0'})
+          data=urllib.request.urlopen(req,timeout=60).read()
+          open('out/images/F35B_CROSSWIND_CREEPING_STOVL_PD.jpg','wb').write(data)
+          open('out/meta/F35B_IMAGE_URL.txt','w').write(url+'\n')
+          PY
+          printf '%s\n' 'DVIDS image 4208446; Peter Wilson completes crosswind creeping short take off and vertical landing testing with BF-1 F-35B, Mar 5 2018; PUBLIC DOMAIN.' > out/images/F35B_CROSSWIND_CREEPING_STOVL_PD.jpg.source.txt
+
+          yt-dlp --no-playlist -o 'out/videos/VID_F35B_USS_AMERICA_LANDING_PD-USN.%(ext)s' 'https://www.dvidshub.net/video/490300/f-35b-lightning-ii-tested-aboard-uss-america'
+          f=$(ls out/videos/VID_F35B_USS_AMERICA_LANDING_PD-USN.* | grep -v source | head -1)
+          if [[ "$f" != *.mp4 ]]; then ffmpeg -y -loglevel error -i "$f" -c copy out/videos/VID_F35B_USS_AMERICA_LANDING_PD-USN.mp4 || true; fi
+          printf '%s\n' 'DVIDS video 490300, U.S. Navy, F-35B landing aboard USS America, PUBLIC DOMAIN.' > out/videos/VID_F35B_USS_AMERICA_LANDING_PD-USN.source.txt
+
           find out -maxdepth 2 -type f -printf '%p\t%s bytes\n' | sort
       - name: Upload artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: tailwing-twelfth-pass-map
+          name: tailwing-thirteenth-pass
           path: out/
           compression-level: 0
           retention-days: 1
