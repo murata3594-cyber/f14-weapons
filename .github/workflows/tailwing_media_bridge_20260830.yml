@@ -1,4 +1,4 @@
-name: Tailwing verified media bridge sixth pass
+name: Tailwing verified media bridge seventh pass
 on:
   push:
     paths:
@@ -6,69 +6,33 @@ on:
 jobs:
   fetch:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 30
     steps:
-      - name: Fetch F35C and official PLA media
+      - name: Fetch Ford crosswind and J36 2024 reference
         shell: bash
         run: |
           set -u
           mkdir -p out/videos out/images out/meta
           python -m pip install -q yt-dlp
-          ua='Mozilla/5.0'
 
-          yt-dlp --no-playlist -f 'best[ext=mp4]/best' -o 'out/videos/VID_F35C_DTIII_CROSSWIND_CARRIER_PD-USN.mp4' 'https://www.dvidshub.net/video/511857/f-35-lightning-ii-completes-dt-iii-aboard-uss-george-washington' || true
-          printf '%s\n' 'https://www.dvidshub.net/video/511857/f-35-lightning-ii-completes-dt-iii-aboard-uss-george-washington' > out/videos/VID_F35C_DTIII_CROSSWIND_CARRIER_PD-USN.mp4.source.txt
+          yt-dlp --no-playlist -f 'best[ext=mp4]/best' -o 'out/videos/VID_FORD_TRANSIT_SIDE_WIND_STABILISATION_OFFICIAL.mp4' 'https://youtu.be/Aka7PXsjrgc' || true
+          printf '%s\n' 'Ford official Side Wind Stabilisation video: https://youtu.be/Aka7PXsjrgc' > out/videos/VID_FORD_TRANSIT_SIDE_WIND_STABILISATION_OFFICIAL.mp4.source.txt
 
-          yt-dlp --no-playlist -f 'best[ext=mp4]/best' -o 'out/videos/VID_PLA_Y20_10TH_LITTLE_SIX_OFFICIAL_2026.mp4' 'https://www.81.cn/syjdt/16470193.html' || true
-          printf '%s\n' 'https://www.81.cn/syjdt/16470193.html' > out/videos/VID_PLA_Y20_10TH_LITTLE_SIX_OFFICIAL_2026.mp4.source.txt
-
-          python - <<'PY'
-          import re, urllib.request, urllib.parse, pathlib
-          pages={
-            'NASA_AILERON':'https://www.grc.nasa.gov/WWW/k-12/VirtualAero/BottleRocket/airplane/aroll.html',
-            'NASA_ELEVATOR':'https://www.grc.nasa.gov/WWW/k-12/VirtualAero/BottleRocket/airplane/aptch.html',
-            'NASA_RUDDER':'https://www.grc.nasa.gov/www/k-12/VirtualAero/BottleRocket/airplane/rud.html',
-            'NASA_AXES':'https://www.grc.nasa.gov/www/k-12/airplane/rotations.html'
-          }
-          out=pathlib.Path('out/images'); meta=[]
-          for key,page in pages.items():
-            try:
-              req=urllib.request.Request(page,headers={'User-Agent':'Mozilla/5.0'})
-              html=urllib.request.urlopen(req,timeout=30).read().decode('latin1','ignore')
-            except Exception as e:
-              meta.append(f'{key}\tPAGE_FAIL\t{e}'); continue
-            srcs=re.findall(r'(?:src|href)=[\"\']([^\"\']+\.(?:gif|jpg|jpeg|png))[\"\']',html,flags=re.I)
-            n=0
-            for s in srcs:
-              u=urllib.parse.urljoin(page,s); low=u.lower()
-              if 'logo' in low or 'button' in low or 'blank' in low: continue
-              try:
-                req=urllib.request.Request(u,headers={'User-Agent':'Mozilla/5.0'})
-                data=urllib.request.urlopen(req,timeout=30).read()
-                if len(data)<5000: continue
-                ext=u.split('?')[0].rsplit('.',1)[-1].lower(); n+=1
-                fn=f'{key}_{n:02d}.{ext}'; (out/fn).write_bytes(data)
-                meta.append(f'{fn}\t{u}\t{len(data)}')
-              except Exception: pass
-          pathlib.Path('out/meta/NASA_GRAPHICS_URLS.tsv').write_text('\n'.join(meta)+'\n')
-          PY
-
-          curl -L --max-time 30 -A "$ua" -s 'https://nyheder.ford.dk/news/ny-teknologi-holder-ford-transit-paa-plads-201285' > out/meta/FORD_PAGE.html || true
-          grep -Eo 'https?[^"'"'"' <>]+(Aka7PXsjrgc|\.(mp4|m3u8))[^"'"'"' <>]*' out/meta/FORD_PAGE.html | sed 's/&amp;/\&/g' | sort -u > out/meta/FORD_MEDIA_URLS.txt || true
+          curl -L --fail --retry 3 -A 'Mozilla/5.0' -o 'out/images/REFERENCE_J36_2024_FIRST_FLIGHT_RIGHTS_PENDING.jpeg' 'https://armyrecognition.com/templates/yootheme/cache/52/Exclusive_Secret_Combat_Capabilities_of_Chinas_New_Chengdu_J-36_Stealth_Fighter_Jet_Unveiled_Breaking_News_1920_001-52456543.jpeg' || true
+          printf '%s\n' 'Army Recognition article image; source caption says Chengdu J-36 first flight, Dec 26 2024; picture source China Social Network; reuse rights not cleared.' > out/images/REFERENCE_J36_2024_FIRST_FLIGHT_RIGHTS_PENDING.jpeg.source.txt
 
           cat > out/meta/SOURCES.tsv <<'EOF'
-          file	section	license_source
-          VID_F35C_DTIII_CROSSWIND_CARRIER_PD-USN.mp4	6-02 candidate	DVIDS / U.S. Navy public domain; DT-III included crosswind testing
-          VID_PLA_Y20_10TH_LITTLE_SIX_OFFICIAL_2026.mp4	J-36 official-context backup	China Military Network / China Military Bugle official source; 2026 temporal mismatch for 2024 slots
-          NASA_*.gif/jpg/png	1-02,1-03,1-05,1-10	NASA Glenn official
-          EOF
-          sha256sum out/videos/*.mp4 out/images/* > out/meta/SHA256SUMS.txt 2>/dev/null || true
+file	section	license_source
+VID_FORD_TRANSIT_SIDE_WIND_STABILISATION_OFFICIAL.mp4	1-07	Ford official media / Side Wind Stabilisation; publication source confirms test track crosswind up to 80 km/h
+REFERENCE_J36_2024_FIRST_FLIGHT_RIGHTS_PENDING.jpeg	6-04	Army Recognition, Dec 29 2024; caption: J-36 first flight near Chengdu Dec 26 2024; China Social Network; RIGHTS PENDING
+EOF
+          sha256sum out/videos/*.mp4 out/images/*.jpeg > out/meta/SHA256SUMS.txt 2>/dev/null || true
           find out -maxdepth 2 -type f -printf '%p\t%s bytes\n' | sort
       - name: Upload artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: tailwing-salvage-sixth-pass
+          name: tailwing-seventh-pass
           path: out/
           compression-level: 0
           retention-days: 1
